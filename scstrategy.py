@@ -1,77 +1,64 @@
-import talib, numpy
+import talib, numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import mplfinance as mpf
 
 COMMISSION = 0.001
+LIQ_MEMORY = 100
 
 in_position = "null"
 
 budget = 1000
 coin_amount = 0
 
-df = pd.read_csv("BTC-2021min.csv")
+df = pd.read_csv("BTC-2021min-reversed.csv", index_col=2, parse_dates=True)
+
+
 
 liquidities = []
 counter = 0
+
 mins = 0
 hours = 0.0
 days = 0.0
 liqLevel = 0.0
-moment = []
-price = []
-# x=[1,2,3,4,5,6,7,8]
-# y=[0.1,0.2,0.5,0.6,0.8,0.8,0.9,1.3]
-# plt.plot(x,y)
-# plt.show()
-plt.xlabel("Time")
-plt.ylabel("Price")
-plt.title("Price and Swing Lows")
 
-for x in range(len(df) - 10, 1, -1):
+
+for x in range(10, len(df), 1):
+    tdf = df[x:x+100]
+    tdf.index.name = 'date'
+
     candle = df[x:x+1]
     prev_candle = df[x+1:x+2]
     mins += 1
     lowVal = float(candle['low'])
     prevLowVal = float(prev_candle['low'])
-
-    price.append(float(candle['close']))
-    if len(price) == 61:
-        price.pop(0)
-
-    if len(price) == len(moment) and len(moment) == 60:
-        plt.plot(moment, price, c='red')
-        if len(liquidities) == 60:
-            plt.show()
-
     if lowVal < prevLowVal:
-        liquidities.append(float(candle['close']))
         counter = 0
+        liquidities.append(np.nan)
+        if len(liquidities) > LIQ_MEMORY:
+            liquidities.pop(0)
 
     elif prevLowVal < lowVal:
         if counter == 1:
             liqLevel = lowVal
         counter += 1
+        liquidities.append(np.nan)
+        if len(liquidities) > LIQ_MEMORY:
+            liquidities.pop(0)
 
     if counter == 5:
         liquidities.append(liqLevel)
+        # liquidities.append(tdf.iloc[x]['low'])
+        print(liquidities)
         counter = 0
-        if len(liquidities) > 60:
+        if len(liquidities) > LIQ_MEMORY:
             liquidities.pop(0)
         hours = mins / 60
         days = hours / 24
-        print("liqs: ", len(liquidities), "  moment: ", len(moment))
-        print("")
-        print(len(price))
-        print("")
-        if len(moment) == len(liquidities) and len(liquidities) == 60:
-            plt.plot(moment, liquidities, c='blue', marker='o')
+        buy_markers = mpf.make_addplot(liquidities, type='scatter', markersize=120, marker='^')
+        apds = [buy_markers]
+        if len(liquidities) == len(tdf):
+            mpf.plot(tdf, type='candle', tight_layout=True, datetime_format='%b %d, %H:%M', addplot=apds)
 
-    mom = str(candle['date'])
-    moment.append(mom[20:29])
-    if len(moment) == 61:
-        moment.pop(0)
-
-
-
-
+    print(len(liquidities))
