@@ -17,6 +17,7 @@ liquidities = []
 counter = 0
 liqCandle = []
 dusuyor = False
+liqAlindi = False
 
 for x in range(0, len(df), 1):
     tdf = df[x-LIQ_MEMORY:x]
@@ -33,38 +34,38 @@ for x in range(0, len(df), 1):
         if len(liqCandle) != 0:
             if lowVal < liqCandle[0][5]:
                 counter = 0
-                liqCandle = []
-        if len(liqCandle) != 0:
-            if lowVal > liqCandle[0][5]:
+                liqCandle = candle.to_numpy()
+            elif lowVal > liqCandle[0][5]:
                 counter += 1
-        if len(liqCandle) == 0:
+
+        elif len(liqCandle) == 0:
             counter = 0
+            liqCandle = candle.to_numpy()
 
         liquidities.append(np.nan)
         if len(liquidities) > LIQ_MEMORY:
             liquidities.pop(0)
 
-    elif prevLowVal < lowVal:
+    elif prevLowVal <= lowVal:
         dusuyor = False
         if counter == 0:
             liqCandle = prev_candle.to_numpy()
-            print(liqCandle,"len(liqCandle): ",len(liqCandle), "   ", liqCandle[0][5])
+            # print(liqCandle,"len(liqCandle): ",len(liqCandle), "   ", liqCandle[0][5])
         counter += 1
         liquidities.append(np.nan)
         if len(liquidities) > LIQ_MEMORY:
             liquidities.pop(0)
 
     if counter == DEPTH:
-        liquidities[-DEPTH+1] = df.iloc[x - DEPTH +1]['low'] - 10
-        print(df.iloc[x-DEPTH])
+        liquidities[-DEPTH] = df.iloc[x - DEPTH]['low'] - 10
+        # print(df.iloc[x-DEPTH])
         counter = 0
         liqCandle = []
 
-    if len(liquidities) == len(tdf) and len(liquidities) == LIQ_MEMORY and x%(LIQ_MEMORY/2) ==0:
+    if len(liquidities) == len(tdf) and len(liquidities) == LIQ_MEMORY and x%3==0:
         buy_markers = mpf.make_addplot(liquidities, type='scatter', markersize=60, marker='^')
         try:
             mpf.plot(tdf, type='candle', tight_layout=True, datetime_format='%b %d, %H:%M', addplot=buy_markers)
         except ValueError:
             print(ValueError)
             pass
-    print(len(liquidities), liquidities, lowVal, dusuyor, counter)
