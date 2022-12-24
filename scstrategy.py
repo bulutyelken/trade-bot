@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import mplfinance as mpf
 
 # COMMISSION = 0.001
-LIQ_MEMORY = 100
+LIQ_MEMORY = 120
 DEPTH = 5
 # in_position = "null"
 
@@ -28,19 +28,17 @@ for x in range(0, len(df), 1):
 
     lowVal = float(candle['low'])
     prevLowVal = float(prev_candle['low'])
+    print(candle.to_numpy()[0][5], " ", counter)
+    if len(liqCandle) == 0:
+        liqCandle = candle.to_numpy()
 
     if lowVal < prevLowVal:
         dusuyor = True
-        if len(liqCandle) != 0:
-            if lowVal < liqCandle[0][5]:
-                counter = 0
-                liqCandle = candle.to_numpy()
-            elif lowVal > liqCandle[0][5]:
-                counter += 1
-
-        elif len(liqCandle) == 0:
+        if lowVal <= liqCandle[0][5]:
             counter = 0
             liqCandle = candle.to_numpy()
+        elif lowVal > liqCandle[0][5]:
+            counter += 1
 
         liquidities.append(np.nan)
         if len(liquidities) > LIQ_MEMORY:
@@ -57,15 +55,15 @@ for x in range(0, len(df), 1):
             liquidities.pop(0)
 
     if counter == DEPTH:
-        liquidities[-DEPTH] = df.iloc[x - DEPTH]['low'] - 10
+        liquidities[-DEPTH] = df.iloc[x - DEPTH]['low'] - 5
         # print(df.iloc[x-DEPTH])
         counter = 0
-        liqCandle = []
+        liqCandle = candle.to_numpy()
 
-    if len(liquidities) == len(tdf) and len(liquidities) == LIQ_MEMORY and x%3==0:
+    if len(liquidities) == len(tdf) and len(liquidities) == LIQ_MEMORY and x % 10 == 0:
         buy_markers = mpf.make_addplot(liquidities, type='scatter', markersize=60, marker='^')
         try:
-            mpf.plot(tdf, type='candle', tight_layout=True, datetime_format='%b %d, %H:%M', addplot=buy_markers)
+            mpf.plot(tdf, figratio=(42,24), type='candle', tight_layout=True, datetime_format='%b %d, %H:%M', addplot=buy_markers)
         except ValueError:
             print(ValueError)
             pass
