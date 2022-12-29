@@ -4,18 +4,18 @@ import matplotlib.pyplot as plt
 import mplfinance as mpf
 
 # COMMISSION = 0.001
-LIQ_MEMORY = 100
+LIQ_MEMORY = 120
 DEPTH = 6
 # in_position = "null"
 # budget = 1000
 # coin_amount = 0
 
-df = pd.read_csv("BTC-2021min-reversed.csv", index_col=2, parse_dates=True).iloc[90000:]
+df = pd.read_csv("BTC-2021min-reversed.csv", index_col=2, parse_dates=True)#.iloc[50000:]
 
 liquidities = []
-liqCandle = []
+liqCandle = []    # liquidites listesine eklenme potansiyeli olan mum
 counter = 0
-dususMumlari = [np.nan]
+# dususMumlari = [np.nan]
 
 for x in range(0, len(df), 1):
     tdf = df[x - LIQ_MEMORY:x]
@@ -27,9 +27,11 @@ for x in range(0, len(df), 1):
     lowVal = float(candle['low'])
     prevLowVal = float(prev_candle['low'])
 
+    # liqCandle'in bos olmasini istemiyoruz cunku kodda sıkıntı cıkartiyor, bos ise hemen suanki mumu atiyoruz
     if len(liqCandle) == 0:
         liqCandle = candle.to_numpy()
 
+    # suanki mum bir önceki mumun altina indiyse
     if lowVal < prevLowVal:
         if lowVal <= liqCandle[0][5]:
             counter = 0
@@ -40,25 +42,23 @@ for x in range(0, len(df), 1):
         if len(liquidities) > LIQ_MEMORY:
             liquidities.pop(0)
 
+    # suanki mum bir önceki mumun altina inmediyse
     elif prevLowVal <= lowVal:
         if counter == 0:
             liqCandle = prev_candle.to_numpy()
-            # print(liqCandle,"len(liqCandle): ",len(liqCandle), "   ", liqCandle[0][5])
         counter += 1
         liquidities.append(np.nan)
         if len(liquidities) > LIQ_MEMORY:
             liquidities.pop(0)
-
+    # her mumda(her iterasyonda) bir likidite temizlenip temizlenmediğini kontrol ediyor ve ona göre likiditeyi siliyor
     for i in range(len(liquidities) - 1):
         if len(liquidities) >= LIQ_MEMORY:
             if liquidities[i] > float(candle['low']):
                 liquidities[i] = np.nan
 
-
+    # liqidite tespit ediliyor ve listeye ekleniyor
     if counter == DEPTH:
-
         liquidities[-DEPTH] = df.iloc[x - DEPTH]['low'] - 5
-
         # print(df.iloc[x-DEPTH])
         counter = 0
         liqCandle = candle.to_numpy()
